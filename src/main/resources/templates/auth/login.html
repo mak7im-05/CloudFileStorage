@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="ru" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Вход в систему</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gradient-to-r from-blue-500 to-purple-600 h-screen flex items-center justify-center">
+    <div class="bg-white p-8 rounded-2xl shadow-lg max-w-sm w-full">
+        <h2 class="text-2xl font-bold text-center text-gray-800">Вход</h2>
+
+        <form action="/process_login" method="POST" class="mt-6" >
+            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+
+            <div th:if="${successMessage}" class="bg-green-100 text-green-700 p-3 rounded-xl text-center mt-4">
+                <p th:text="${successMessage}"></p>
+            </div>
+
+            <div>
+                <label for="username" class="block text-sm font-medium text-gray-700">Логин</label>
+                <input type="text" id="username" name="username" required
+                       class="w-full px-4 py-2 mt-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400">
+            </div>
+
+            <div class="mt-4">
+                <label for="password" class="block text-sm font-medium text-gray-700">Пароль</label>
+                <input type="password" id="password" name="password" required
+                       class="w-full px-4 py-2 mt-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400">
+            </div>
+
+            <button type="submit"
+                    class="w-full mt-6 bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 rounded-xl transition duration-200">
+                Войти
+            </button>
+
+            <div th:if="${param.error}" class="bg-red-100 text-red-700 p-3 rounded-xl text-center mt-4">
+                Логин или пароль введены не верно
+            </div>
+        </form>
+        <p class="text-sm text-center text-gray-600 mt-4">Нет аккаунта? <a th:href="@{/auth/registration}" class="text-blue-500 hover:underline">Регистрация</a></p>
+    </div>
+</body>
+</html>
