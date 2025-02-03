@@ -26,7 +26,7 @@ public class Person {
     @NotEmpty(message = "Имя не должно быть пустым")
     @NotBlank(message = "Имя не должно быть пустым")
     @Size(min = 3, max = 64, message = "Имя должно быть больше 3 символов и меньше 64")
-    @Column(name = "username")
+    @Column(name = "username", unique = true)
     private String username;
 
     @NotEmpty(message = "Пароль не должно быть пустым")
