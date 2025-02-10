@@ -3,7 +3,7 @@ package com.maxim.CloudFileStorage.controller;
 import com.maxim.CloudFileStorage.dto.PersonDto;
 import com.maxim.CloudFileStorage.entity.Person;
 import com.maxim.CloudFileStorage.mapper.PersonMapper;
-import com.maxim.CloudFileStorage.service.PersonService;
+import com.maxim.CloudFileStorage.service.AuthenticationService;
 import com.maxim.CloudFileStorage.util.PersonValidator;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -22,7 +22,7 @@ public class AuthController {
 
     private final PersonValidator personValidator;
     private final PersonMapper personMapper;
-    private final PersonService personService;
+    private final AuthenticationService authenticationService;
 
     @GetMapping("/login")
     public String showLoginPage() {
@@ -45,7 +45,7 @@ public class AuthController {
         }
 
         Person person = personMapper.toEntity(personDto);
-        personService.register(person);
+        authenticationService.register(person);
         redirectAttributes.addFlashAttribute("successMessage", "Регистрирование успешно. Пожалуйста войдите в аккаунт");
         return "redirect:/auth/login";
     }

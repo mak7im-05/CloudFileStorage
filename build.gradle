@@ -47,6 +47,8 @@ dependencies {
 
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 	implementation 'org.liquibase:liquibase-core:4.31.0'
+
+	implementation 'io.minio:minio:8.5.17'
 }
 
 tasks.withType(JavaCompile).configureEach {
