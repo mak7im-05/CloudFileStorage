@@ -3,7 +3,7 @@ package com.maxim.CloudFileStorage.util;
 
 import com.maxim.CloudFileStorage.dto.PersonDto;
 import com.maxim.CloudFileStorage.entity.Person;
-import com.maxim.CloudFileStorage.service.PersonService;
+import com.maxim.CloudFileStorage.service.AuthenticationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.validation.Errors;
@@ -16,7 +16,7 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class PersonValidator implements Validator {
 
-    private final PersonService personService;
+    private final AuthenticationService authenticationService;
 
     @Override
     public boolean supports(Class<?> clazz) {
@@ -32,7 +32,7 @@ public class PersonValidator implements Validator {
             return;
         }
 
-        Optional<Person> person = personService.findByUsername(personDto.username());
+        Optional<Person> person = authenticationService.findByUsername(personDto.username());
         person.ifPresent(a -> errors.rejectValue("username", "", "Пользователь с таким именем уже существует"));
     }
 }
