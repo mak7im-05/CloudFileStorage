@@ -1,6 +1,7 @@
 package com.maxim.CloudFileStorage.security;
 
 import com.maxim.CloudFileStorage.entity.Person;
+import lombok.Getter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -10,6 +11,7 @@ import java.util.Collection;
 import java.util.List;
 
 @Component
+@Getter
 public class PersonDetails implements UserDetails {
 
     private final Person person;

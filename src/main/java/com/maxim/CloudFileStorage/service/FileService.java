@@ -1,74 +1,67 @@
 package com.maxim.CloudFileStorage.service;
 
+import com.maxim.CloudFileStorage.dto.MinioObjectDto;
 import com.maxim.CloudFileStorage.util.PathUtil;
 import io.minio.*;
+import io.minio.messages.Item;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.ByteArrayInputStream;
 import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.List;
+
+import static com.maxim.CloudFileStorage.util.PathUtil.buildFilePath;
 
 @Service
 @RequiredArgsConstructor
 public class FileService {
 
-    private final String bucketName = "user-files";
+    @Value("${minio.bucketName}")
+    private String bucketName;
     private final MinioClient minioClient;
 
-    public void renameFile(int userId, String path, String oldName, String newName) throws Exception {
-        String oldFilePath = PathUtil.buildUserFilePath(userId, path, oldName);
-        String newFilePath = PathUtil.buildUserFilePath(userId, path, newName);
+    public void renameFile(int userId, String currentDirectory, String oldName, String newName) throws Exception {
+        String extension = PathUtil.getExtension(oldName);
+        String oldFilePath = buildFilePath(userId, currentDirectory, oldName);
+        String newFilePath = buildFilePath(userId, currentDirectory, newName + "." + extension);
 
         if (fileExists(oldFilePath) && !fileExists(newFilePath)) {
             minioClient.copyObject(
                     CopyObjectArgs
                             .builder()
-                            .source(
-                                    CopySource
-                                            .builder()
-                                            .bucket(bucketName)
-                                            .object(oldFilePath)
-                                            .build()
-                            )
+                            .source(CopySource.builder().bucket(bucketName).object(oldFilePath).build())
                             .bucket(bucketName)
                             .object(newFilePath)
                             .build());
-            deleteFile(userId, path, oldName);
-            return;
+            deleteFile(userId, currentDirectory + oldName);
+        } else {
+            throw new Exception("Файл с таким именем уже существует");
         }
-        throw new Exception("File doesn't exist or new file name already exists");
     }
 
-    public void deleteFile(int userId, String path, String fileName) throws Exception {
-        String filePath = PathUtil.buildUserFilePath(userId, path, fileName);
+    public void deleteFile(int userId, String path) throws Exception {
+        String filePath = buildFilePath(userId, path);
         if (fileExists(filePath)) {
             minioClient.removeObject(
-                    RemoveObjectArgs
-                            .builder()
+                    RemoveObjectArgs.builder()
                             .bucket(bucketName)
                             .object(filePath)
                             .build());
-            return;
-        }
-        throw new Exception("File doesn't exist");
-    }
-
-    private boolean fileExists(String filePath) {
-        try {
-            minioClient.statObject(
-                    StatObjectArgs
-                            .builder()
-                            .bucket(bucketName)
-                            .object(filePath)
-                            .build());
-            return true;
-        } catch (Exception e) {
-            return false;
+        } else {
+            throw new Exception("Файл не существует");
         }
     }
 
-    public void uploadFile(String path, MultipartFile file, int userId) throws Exception {
-        String filePath = PathUtil.buildUserFilePath(userId, path, file.getOriginalFilename());
+    public void uploadFile(String path, MultipartFile file, int userId) {
+        String filePath = buildFilePath(userId, path, file.getOriginalFilename());
+        if (fileExists(filePath)) {
+            throw new IllegalArgumentException("Файл с таким именем уже существует");
+        }
+        createDirectories(filePath);
         try (InputStream inputStream = file.getInputStream()) {
             minioClient.putObject(
                     PutObjectArgs.builder()
@@ -78,25 +71,73 @@ public class FileService {
                             .contentType(file.getContentType())
                             .build()
             );
+        } catch (Exception e) {
+            throw new RuntimeException("Ошибка загрузки файла", e);
         }
     }
 
-//    public void listFiles(String prefix) throws Exception {
-//        Iterable<Result<Item>> results = minioClient.listObjects(
-//                    ListObjectsArgs.builder().bucket(bucketName).prefix(prefix).recursive(true).build());
-//
-//        for (Result<Item> result : results) {
-//            Item item = result.get();
-//            System.out.println(item.objectName());
-//        }
-//    }
+    private boolean fileExists(String filePath) {
+        try {
+            minioClient.statObject(
+                    StatObjectArgs.builder()
+                            .bucket(bucketName)
+                            .object(filePath)
+                            .build());
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
+    }
 
-//    public void listBuckets() throws Exception {
-//        List<Bucket> buckets = minioClient.listBuckets();
-//        for (Bucket bucket : buckets) {
-//            System.out.println(bucket.name());
-//        }
-//    }
+    public List<MinioObjectDto> listFiles(String path, int userId) throws Exception {
+        String fullPathToDirectory = buildFilePath(userId, path);
+        Iterable<Result<Item>> results = minioClient.listObjects(
+                ListObjectsArgs.builder().bucket(bucketName).prefix(fullPathToDirectory).build());
 
+        List<MinioObjectDto> minioObjectList = new ArrayList<>();
+        for (Result<Item> result : results) {
+            Item item = result.get();
+            if (isCurrentDirectory(item, fullPathToDirectory)) {
+                continue;
+            }
+            boolean isDir = item.objectName().endsWith("/");
+            String objectPath = item.objectName().replaceFirst("user-\\d+-files/", "");
+            String objectName = item.objectName().replaceFirst(fullPathToDirectory, "");
+            if (isDir) {
+                objectName = objectName.substring(0, objectName.length() - 1);
+            }
 
+            minioObjectList.add(new MinioObjectDto(objectName, objectPath, isDir));
+        }
+        return minioObjectList;
+    }
+
+    private static boolean isCurrentDirectory(Item item, String fullPathToDirectory) {
+        return item.objectName().equals(fullPathToDirectory);
+    }
+
+    public InputStream downloadFile(int userId, String objectName) throws Exception {
+        String fullPathToFile = buildFilePath(userId, objectName);
+        return minioClient.getObject(GetObjectArgs.builder()
+                .bucket(bucketName)
+                .object(fullPathToFile)
+                .build());
+    }
+
+    private void createDirectories(String filePath) {
+        PathUtil.getPathSegments(filePath).forEach(segment -> {
+            if (!fileExists(segment)) {
+                try {
+                    minioClient.putObject(
+                            PutObjectArgs.builder()
+                                    .bucket(bucketName)
+                                    .object(segment)
+                                    .stream(new ByteArrayInputStream(new byte[0]), 0, -1)
+                                    .build());
+                } catch (Exception e) {
+                    throw new RuntimeException("Error creating directory", e);
+                }
+            }
+        });
+    }
 }
