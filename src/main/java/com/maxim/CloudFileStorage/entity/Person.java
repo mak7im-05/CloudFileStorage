@@ -10,6 +10,8 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.springframework.stereotype.Component;
 
+import java.util.Objects;
+
 @Component
 @Getter
 @Setter
@@ -34,4 +36,16 @@ public class Person {
     @Size(min = 3, max = 64, message = "Пароль должно быть больше 3 символов и меньше 64")
     @Column(name = "password")
     private String password;
+
+    @Override
+    public boolean equals(Object o) {
+        if (o == null || getClass() != o.getClass()) return false;
+        Person person = (Person) o;
+        return id == person.id && Objects.equals(username, person.username) && Objects.equals(password, person.password);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id, username, password);
+    }
 }
