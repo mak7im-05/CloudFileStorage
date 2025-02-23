@@ -27,7 +27,7 @@ public class FileService {
     public void renameFile(int userId, String currentDirectory, String oldName, String newName) throws Exception {
         String extension = PathUtil.getExtension(oldName);
         String oldFilePath = buildFilePath(userId, currentDirectory, oldName);
-        String newFilePath = buildFilePath(userId, currentDirectory, newName + "." + extension);
+        String newFilePath = buildFilePath(userId, currentDirectory, newName + extension);
 
         if (fileExists(oldFilePath) && !fileExists(newFilePath)) {
             minioClient.copyObject(
@@ -112,16 +112,16 @@ public class FileService {
         return minioObjectList;
     }
 
-    private static boolean isCurrentDirectory(Item item, String fullPathToDirectory) {
-        return item.objectName().equals(fullPathToDirectory);
-    }
-
     public InputStream downloadFile(int userId, String objectName) throws Exception {
         String fullPathToFile = buildFilePath(userId, objectName);
         return minioClient.getObject(GetObjectArgs.builder()
                 .bucket(bucketName)
                 .object(fullPathToFile)
                 .build());
+    }
+
+    private static boolean isCurrentDirectory(Item item, String fullPathToDirectory) {
+        return item.objectName().equals(fullPathToDirectory);
     }
 
     private void createDirectories(String filePath) {
