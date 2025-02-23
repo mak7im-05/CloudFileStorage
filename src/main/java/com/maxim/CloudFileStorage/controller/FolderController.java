@@ -52,6 +52,9 @@ public class FolderController {
                                   @AuthenticationPrincipal PersonDetails personDetails,
                                   RedirectAttributes redirectAttributes) {
         int userId = personDetails.getPerson().getId();
+        if (folderName.isBlank()) {
+            folderName = "Новая папка";
+        }
         try {
             folderService.createFolder(currentDirectory, folderName, userId);
         } catch (Exception e) {
