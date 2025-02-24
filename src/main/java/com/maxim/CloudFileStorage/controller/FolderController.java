@@ -33,10 +33,10 @@ public class FolderController {
 
     @PostMapping("/rename")
     public String renameFolder(@RequestParam(name = "currentDirectory", defaultValue = "") String currentDirectory,
-                                @RequestParam("newName") String newName,
-                                @RequestParam("oldName") String oldName,
-                                @AuthenticationPrincipal PersonDetails personDetails,
-                                RedirectAttributes redirectAttributes) {
+                               @RequestParam("newName") String newName,
+                               @RequestParam("oldName") String oldName,
+                               @AuthenticationPrincipal PersonDetails personDetails,
+                               RedirectAttributes redirectAttributes) {
         int userId = personDetails.getPerson().getId();
         try {
             folderService.renameFolder(userId, currentDirectory, oldName, newName);

@@ -2,6 +2,7 @@ package com.maxim.CloudFileStorage.controller;
 
 import com.maxim.CloudFileStorage.security.PersonDetails;
 import com.maxim.CloudFileStorage.service.FileService;
+import com.maxim.CloudFileStorage.service.MinioService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -11,6 +12,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+
+import java.util.Arrays;
 
 @Controller
 @RequiredArgsConstructor
@@ -26,14 +29,13 @@ public class UploadController {
                                @AuthenticationPrincipal PersonDetails personDetails,
                                RedirectAttributes redirectAttributes) {
         int userId = personDetails.getPerson().getId();
-        try {
-            for (MultipartFile file : files) {
+        Arrays.stream(files).forEach(file -> {
+            try {
                 fileService.uploadFile(currentDirectory, file, userId);
+            } catch (Exception e) {
+                redirectAttributes.addFlashAttribute("errorMessage", "Файл не был загружен, возможно он уже существует");
             }
-        } catch (Exception e) {
-            log.error("Error while uploading file", e);
-            redirectAttributes.addFlashAttribute("errorMessage", "Файл не был загружен, возможно он уже существует");
-        }
+        });
         return "redirect:/main?currentDirectory=" + currentDirectory;
     }
 }

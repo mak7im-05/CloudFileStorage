@@ -69,7 +69,7 @@ public class FileController {
         try {
             fileService.renameFile(userId, currentDirectory, oldName, newName);
         } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("errorMessage", "Файл не был переименован");
+            redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
         }
         return "redirect:/main?currentDirectory=" + currentDirectory;
     }

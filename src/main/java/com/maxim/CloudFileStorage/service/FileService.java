@@ -2,15 +2,17 @@ package com.maxim.CloudFileStorage.service;
 
 import com.maxim.CloudFileStorage.dto.MinioObjectDto;
 import com.maxim.CloudFileStorage.util.PathUtil;
-import io.minio.*;
+import io.minio.Result;
+import io.minio.errors.*;
 import io.minio.messages.Item;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.io.InputStream;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -20,80 +22,41 @@ import static com.maxim.CloudFileStorage.util.PathUtil.buildFilePath;
 @RequiredArgsConstructor
 public class FileService {
 
-    @Value("${minio.bucketName}")
-    private String bucketName;
-    private final MinioClient minioClient;
+    private final MinioService minioService;
 
     public void renameFile(int userId, String currentDirectory, String oldName, String newName) throws Exception {
         String extension = PathUtil.getExtension(oldName);
         String oldFilePath = buildFilePath(userId, currentDirectory, oldName);
         String newFilePath = buildFilePath(userId, currentDirectory, newName + "." + extension);
 
-        if (fileExists(oldFilePath) && !fileExists(newFilePath)) {
-            minioClient.copyObject(
-                    CopyObjectArgs
-                            .builder()
-                            .source(CopySource.builder().bucket(bucketName).object(oldFilePath).build())
-                            .bucket(bucketName)
-                            .object(newFilePath)
-                            .build());
-            deleteFile(userId, currentDirectory + oldName);
+        if (minioService.fileExists(oldFilePath) && !minioService.fileExists(newFilePath)) {
+            minioService.copyFile(oldFilePath, newFilePath);
+            minioService.deleteFile(oldFilePath);
         } else {
-            throw new Exception("Файл с таким именем уже существует");
-        }
-    }
-
-    public void deleteFile(int userId, String path) throws Exception {
-        String filePath = buildFilePath(userId, path);
-        if (fileExists(filePath)) {
-            minioClient.removeObject(
-                    RemoveObjectArgs.builder()
-                            .bucket(bucketName)
-                            .object(filePath)
-                            .build());
-        } else {
-            throw new Exception("Файл не существует");
+            throw new Exception("Файл не был переименован");
         }
     }
 
     public void uploadFile(String path, MultipartFile file, int userId) {
         String filePath = buildFilePath(userId, path, file.getOriginalFilename());
-        if (fileExists(filePath)) {
+        if (minioService.fileExists(filePath)) {
             throw new IllegalArgumentException("Файл с таким именем уже существует");
         }
-        createDirectories(filePath);
-        try (InputStream inputStream = file.getInputStream()) {
-            minioClient.putObject(
-                    PutObjectArgs.builder()
-                            .bucket(bucketName)
-                            .object(filePath)
-                            .stream(inputStream, file.getSize(), -1)
-                            .contentType(file.getContentType())
-                            .build()
-            );
-        } catch (Exception e) {
-            throw new RuntimeException("Ошибка загрузки файла", e);
-        }
-    }
-
-    private boolean fileExists(String filePath) {
         try {
-            minioClient.statObject(
-                    StatObjectArgs.builder()
-                            .bucket(bucketName)
-                            .object(filePath)
-                            .build());
-            return true;
+            minioService.putObject(file, filePath);
         } catch (Exception e) {
-            return false;
+            throw new RuntimeException(e);
         }
+        createDirectories(filePath);
     }
 
     public List<MinioObjectDto> listFiles(String path, int userId) throws Exception {
         String fullPathToDirectory = buildFilePath(userId, path);
-        Iterable<Result<Item>> results = minioClient.listObjects(
-                ListObjectsArgs.builder().bucket(bucketName).prefix(fullPathToDirectory).build());
+        Iterable<Result<Item>> results = minioService.listObjects(fullPathToDirectory);
+        return getMinioObjectList(results, fullPathToDirectory);
+    }
 
+    private List<MinioObjectDto> getMinioObjectList(Iterable<Result<Item>> results, String fullPathToDirectory) throws Exception {
         List<MinioObjectDto> minioObjectList = new ArrayList<>();
         for (Result<Item> result : results) {
             Item item = result.get();
@@ -112,32 +75,29 @@ public class FileService {
         return minioObjectList;
     }
 
-    private static boolean isCurrentDirectory(Item item, String fullPathToDirectory) {
+    private boolean isCurrentDirectory(Item item, String fullPathToDirectory) {
         return item.objectName().equals(fullPathToDirectory);
     }
 
     public InputStream downloadFile(int userId, String objectName) throws Exception {
-        String fullPathToFile = buildFilePath(userId, objectName);
-        return minioClient.getObject(GetObjectArgs.builder()
-                .bucket(bucketName)
-                .object(fullPathToFile)
-                .build());
+        String path = buildFilePath(userId, objectName);
+        return minioService.getObject(path);
     }
 
     private void createDirectories(String filePath) {
-        PathUtil.getPathSegments(filePath).forEach(segment -> {
-            if (!fileExists(segment)) {
-                try {
-                    minioClient.putObject(
-                            PutObjectArgs.builder()
-                                    .bucket(bucketName)
-                                    .object(segment)
-                                    .stream(new ByteArrayInputStream(new byte[0]), 0, -1)
-                                    .build());
-                } catch (Exception e) {
-                    throw new RuntimeException("Error creating directory", e);
-                }
+        PathUtil.getPathSegments(filePath).forEach(file -> {
+            if (!minioService.fileExists(file)) {
+                minioService.createEmptyFolder(file);
             }
         });
+    }
+
+    public void deleteFile(int userId, String pathToFile) {
+        String filePath = buildFilePath(userId, pathToFile);
+        try {
+            minioService.deleteFile(filePath);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 }

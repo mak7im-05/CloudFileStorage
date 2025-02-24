@@ -94,7 +94,7 @@ function readEntryContentAsync(entry, path = '') {
             if (entry.isFile) {
                 reading++;
                 entry.file(file => {
-                    contents.push(new File([file], `${path}${entry.name}`, { type: file.type }));
+                    contents.push(new File([file], `${path}${entry.name}`, {type: file.type}));
                     reading--;
                     if (reading === 0) resolve(contents);
                 });
