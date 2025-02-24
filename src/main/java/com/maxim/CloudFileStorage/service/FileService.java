@@ -34,6 +34,11 @@ public class FileService {
     }
 
     public void uploadFile(String path, MultipartFile file, int userId) {
+
+        if(!minioService.folderExists(path)) {
+            throw new IllegalArgumentException("Папка в которой хотите создать файл, не существует");
+        }
+
         String filePath = buildFilePath(userId, path, file.getOriginalFilename());
         if (minioService.fileExists(filePath)) {
             throw new IllegalArgumentException("Файл с таким именем уже существует");

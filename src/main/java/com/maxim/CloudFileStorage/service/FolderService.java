@@ -38,6 +38,11 @@ public class FolderService {
         deleteFolderContents(folderPath);
     }
 
+    public boolean isFolderExists(String path, int userId) {
+        String folderPath = buildFilePath(userId, path);
+        return minioService.folderExists(folderPath);
+    }
+
     private void renameFolderContents(String oldFolderPath, String newFolderPath) throws Exception {
         Iterable<Result<Item>> results = minioService.listObjectsRecursively(oldFolderPath);
         for (Result<Item> result : results) {

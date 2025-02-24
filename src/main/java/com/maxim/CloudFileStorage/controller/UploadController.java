@@ -32,7 +32,7 @@ public class UploadController {
             try {
                 fileService.uploadFile(currentDirectory, file, userId);
             } catch (Exception e) {
-                redirectAttributes.addFlashAttribute("errorMessage", "Файл не был загружен, возможно он уже существует");
+                redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
             }
         });
         return "redirect:/main?currentDirectory=" + currentDirectory;
