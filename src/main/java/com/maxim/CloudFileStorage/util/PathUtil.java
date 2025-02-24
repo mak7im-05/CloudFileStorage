@@ -36,7 +36,7 @@ public class PathUtil {
             return "";
         }
 
-        return filename.substring(lastDotPosition + 1);
+        return '.' + filename.substring(lastDotPosition + 1);
     }
 
     public static List<BreadcrumbsDto> getBreadcrumbs(String path) {
