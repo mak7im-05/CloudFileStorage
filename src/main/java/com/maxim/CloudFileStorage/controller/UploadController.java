@@ -2,7 +2,6 @@ package com.maxim.CloudFileStorage.controller;
 
 import com.maxim.CloudFileStorage.security.PersonDetails;
 import com.maxim.CloudFileStorage.service.FileService;
-import com.maxim.CloudFileStorage.service.MinioService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
