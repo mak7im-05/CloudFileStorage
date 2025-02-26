@@ -23,7 +23,7 @@ public class FileService {
     public void renameFile(int userId, String currentDirectory, String oldName, String newName) throws Exception {
         String extension = PathUtil.getExtension(oldName);
         String oldFilePath = buildFilePath(userId, currentDirectory, oldName);
-        String newFilePath = buildFilePath(userId, currentDirectory, newName + "." + extension);
+        String newFilePath = buildFilePath(userId, currentDirectory, newName + extension);
 
         if (minioService.fileExists(oldFilePath) && !minioService.fileExists(newFilePath)) {
             minioService.copyFile(oldFilePath, newFilePath);
