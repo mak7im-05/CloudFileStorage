@@ -29,8 +29,7 @@ public class MainController {
             Model model) throws Exception {
         int userId = personDetails.getPerson().getId();
 
-
-        if (!folderService.isFolderExists(currentDirectory, userId)) {
+        if (!folderService.isFolderExists(currentDirectory, userId) && !currentDirectory.isEmpty()) {
             model.addAttribute("errorMessage", "Директория не существует");
         }
 

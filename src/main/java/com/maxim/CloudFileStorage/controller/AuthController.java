@@ -26,12 +26,12 @@ public class AuthController {
 
     @GetMapping("/login")
     public String showLoginPage() {
-        return "auth/login";
+        return "login";
     }
 
     @GetMapping("/registration")
     public String showRegistrationPage(@ModelAttribute("person") PersonDto personDto) {
-        return "auth/registration";
+        return "registration";
     }
 
     @PostMapping("/registration")
@@ -40,8 +40,7 @@ public class AuthController {
                                       RedirectAttributes redirectAttributes) {
         personValidator.validate(personDto, bindingResult);
         if (bindingResult.hasErrors()) {
-
-            return "/auth/registration";
+            return "registration";
         }
 
         Person person = personMapper.toEntity(personDto);
