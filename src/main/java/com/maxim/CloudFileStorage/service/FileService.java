@@ -101,4 +101,8 @@ public class FileService {
             throw new RuntimeException(e);
         }
     }
+
+    public void createUserFolder(int userId) {
+        minioService.createEmptyFolder("user-" + userId + "-files/");
+    }
 }
